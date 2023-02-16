@@ -1,5 +1,4 @@
 # Program: VTSTech-PROXY.py
-# Version: 0.0.1 Revision 01
 # Operating System: Kali Linux
 # Description: Python script that asynchronously checks a list of SOCKS5 proxies for anonymity and writes the results to a text file.
 # Author: Written by Veritas//VTSTech (veritas@vts-tech.org)
@@ -15,7 +14,7 @@ import signal
 import sys
 import random
 
-build = "v0.0.1-r01"
+build = "v0.0.1-r02"
 
 # Handle the KeyboardInterrupt signal by stopping the current proxy check
 def handle_interrupt(signal, frame):
@@ -40,7 +39,6 @@ with open(proxies_file) as f:
     with open("prox.txt", "w") as outfile:
         # Call the proxy script for each proxy
         outfile.write(f"VTSTech-PROXY {build} https://www.VTS-Tech.org/\nStarting proxy check for {len(proxies)} proxies...\n")
-
         async def check_proxy(session, proxy):
             # Extract proxy host and port from string
             proxy_host, proxy_port = proxy.split(":")
@@ -54,7 +52,7 @@ with open(proxies_file) as f:
             test_url = random.choice(test_urls)
             try:
                 # Test the proxy by making a request
-                async with session.get(test_url, proxy=f'socks5://{proxy_host}:{proxy_port}', timeout=10) as response:
+                async with session.get(test_url, proxy=f'socks5://{proxy_host}:{proxy_port}', timeout=6) as response:
                     if response.status == 200:
                         # Check if the proxy IP is present in the response HTML
                         if proxy_host in await response.text():
@@ -69,8 +67,7 @@ with open(proxies_file) as f:
             except Exception as e:
                 is_proxy_ip_present = False
                 output = f"SOCKS5 {proxy_host}:{proxy_port} ERROR: {e}."
-            return is_proxy_ip_present, output
-        
+            return is_proxy_ip_present, output        
         async def main():
             async with aiohttp.ClientSession() as session:
                 tasks = []
@@ -82,7 +79,4 @@ with open(proxies_file) as f:
                         print(output)
                         # Write the output to the text file
                         outfile.write(output + "\n")
-                    # Wait for a random amount of time before testing the next proxy
-                    await asyncio.sleep(random.randint(1, 4))
-
         asyncio.run(main())
