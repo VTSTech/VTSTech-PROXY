@@ -14,7 +14,7 @@ import sys
 import random
 import time
 
-build = "v0.0.1-r03"
+build = "v0.0.1-r04"
 
 # Handle the KeyboardInterrupt signal by stopping the current proxy check
 def handle_interrupt(signal, frame):
@@ -65,10 +65,14 @@ with open("prox.txt", "w") as outfile:
                 else:
                     output = f"SOCKS5 {proxy_host}:{proxy_port} {response.status} {test_url}."
                     is_proxy_ip_present = False
+        except asyncio.TimeoutError as e:
+            is_proxy_ip_present = False
+            output = f"SOCKS5 {proxy_host}:{proxy_port} TIMEOUT: {e}."
         except Exception as e:
             is_proxy_ip_present = False
             output = f"SOCKS5 {proxy_host}:{proxy_port} ERROR: {e}."
-        return is_proxy_ip_present, output        
+        return is_proxy_ip_present, output
+
     async def main():
         async with aiohttp.ClientSession() as session:
             tasks = []
@@ -81,4 +85,3 @@ with open("prox.txt", "w") as outfile:
                     # Write the output to the text file
                     outfile.write(output + "\n")
     asyncio.run(main())
-    
