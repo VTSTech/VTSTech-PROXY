@@ -4,7 +4,7 @@
 # GitHub: https://github.com/Veritas83
 # Homepage: www.VTS-Tech.org
 # Dependencies: aiohttp
-# pip install aiohttp
+# pip install aiohttp tqdm
 # OpenAI's ChatCPT wrote r00, I modified it from there to be r01.
 import aiohttp
 import asyncio
@@ -14,7 +14,7 @@ import random
 import time
 import argparse
 from tqdm import tqdm
-build = "VTSTech-PROXY v0.0.2-r03"
+build = "VTSTech-PROXY v0.0.2-r04"
 sys.tracebacklimit = 0
 def handle_interrupt(signal, frame):
     print("\nStopping current proxy check...")
@@ -25,6 +25,8 @@ parser.add_argument("proxies_file", help="path to proxies file")
 parser.add_argument("-p", "--ping", action="store_true", help="toggle ping output")
 parser.add_argument("-c", "--code", action="store_true", help="toggle http status code output")
 parser.add_argument("-u", "--url", action="store_true", help="toggle test url output")
+parser.add_argument("-4", "--socks4", action="store_true", help="Use SOCKS4")
+parser.add_argument("-5", "--socks5", action="store_true", help="Use SOCKS5 (default)")
 args = parser.parse_args()
 proxies_file = args.proxies_file
 with open(proxies_file) as f:
@@ -38,9 +40,12 @@ with open("prox.txt", "w") as outfile:
         #time.sleep(0.1)
         proxy_host, proxy_port = proxy.split(":")
         proxy_port = int(proxy_port)
+        socks_uri = "socks5://"
+        if args.socks4:
+        	socks_uri = "socks4://"
         test_url = random.choice(test_urls)
         try:
-            async with session.get(test_url, proxy=f'socks5://{proxy_host}:{proxy_port}', timeout=8) as response:
+            async with session.get(test_url, proxy=f'{socks_uri}{proxy_host}:{proxy_port}', timeout=8) as response:
                 if response.status < 503:
                     is_error = False
                     is_timeout = False
@@ -80,7 +85,7 @@ with open("prox.txt", "w") as outfile:
         if args.ping:
             try:
                 start_time = time.monotonic()
-                async with session.get(test_url, proxy=f'socks5://{proxy_host}:{proxy_port}', timeout=8) as response:
+                async with session.get(test_url, proxy=f'{socks_uri}{proxy_host}:{proxy_port}', timeout=8) as response:
                     latency = time.monotonic() - start_time
                     output += f" PING: {round(latency * 1000, 2)}ms"
             except:
