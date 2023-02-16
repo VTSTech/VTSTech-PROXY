@@ -14,7 +14,8 @@ import random
 import time
 import argparse
 from tqdm import tqdm
-build = "VTSTech-PROXY v0.0.2-r02"
+build = "VTSTech-PROXY v0.0.2-r03"
+sys.tracebacklimit = 0
 def handle_interrupt(signal, frame):
     print("\nStopping current proxy check...")
     sys.exit(0)
@@ -50,6 +51,8 @@ with open("prox.txt", "w") as outfile:
                         is_proxy_ip_present = False
                         output = f"{proxy_host}:{proxy_port} ANON: NO."
                 else:
+                    is_error = False
+                    is_timeout = False                    
                     output = f"{proxy_host}:{proxy_port} {response.status} {test_url}."
                     is_proxy_ip_present = False
         except asyncio.TimeoutError as e:
@@ -81,8 +84,7 @@ with open("prox.txt", "w") as outfile:
                     latency = time.monotonic() - start_time
                     output += f" PING: {round(latency * 1000, 2)}ms"
             except:
-                pass
-        #print(f"Checked {proxy_host} ...")        
+                pass   
         pbar.update(1)
         return is_proxy_ip_present, is_error, is_timeout, output
 
@@ -98,7 +100,7 @@ with open("prox.txt", "w") as outfile:
 	                if is_proxy_ip_present:
 	                    print(output)
 	                    outfile.write(output + "\n")
-	                if not is_timeout and not is_error:
+	                if not is_timeout and not is_error and not is_proxy_ip_present:
 	                    print(output)
 	                    outfile.write(output + "\n")
     asyncio.run(main())            
