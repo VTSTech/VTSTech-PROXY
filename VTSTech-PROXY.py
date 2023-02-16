@@ -46,9 +46,9 @@ with open(proxies_file) as f:
             # Choose a random URL from the list to test the proxy with
             # List of URLs to test the proxy with
             test_urls = [
-            	"https://www.proxyjudge.us/",
-            	"https://www.azenv.net/"
-            ]
+						    "https://www.proxyjudge.us/",  
+						    "https://www.azenv.net/"
+						]
             test_url = random.choice(test_urls)
             try:
                 # Test the proxy by making a request
@@ -57,7 +57,7 @@ with open(proxies_file) as f:
                         # Check if the proxy IP is present in the response HTML
                         if proxy_host in await response.text():
                             is_proxy_ip_present = True
-                            output = f"SOCKS5 {proxy_host}:{proxy_port} {response.status} {test_url} ANON: YES."
+                            output = f"{proxy_host}:{proxy_port}"
                         else:
                             is_proxy_ip_present = False
                             output = f"SOCKS5 {proxy_host}:{proxy_port} {response.status} {test_url} ANON: NO."
