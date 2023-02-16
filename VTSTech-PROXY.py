@@ -13,8 +13,9 @@ import signal
 import sys
 import random
 import time
+import argparse
 
-build = "v0.0.1-r04"
+build = "v0.0.1-r05"
 
 # Handle the KeyboardInterrupt signal by stopping the current proxy check
 def handle_interrupt(signal, frame):
@@ -24,12 +25,12 @@ def handle_interrupt(signal, frame):
 signal.signal(signal.SIGINT, handle_interrupt)
 
 # Read proxies from text file
-if len(sys.argv) != 2:
-    print(f"VTSTech-PROXY {build} https://www.VTS-Tech.org/")
-    print("Usage: python VTSTech-PROXY.py path/to/proxies.txt")
-    sys.exit()
+parser = argparse.ArgumentParser(description="VTSTech-PROXY proxy checker")
+parser.add_argument("proxies_file", help="path to proxies file")
+parser.add_argument("-p", "--ping", action="store_true", help="toggle ping output")
+args = parser.parse_args()
 
-proxies_file = sys.argv[1]
+proxies_file = args.proxies_file
 
 with open(proxies_file) as f:
     proxies = [line.strip() for line in f.readlines()]
@@ -71,6 +72,15 @@ with open("prox.txt", "w") as outfile:
         except Exception as e:
             is_proxy_ip_present = False
             output = f"SOCKS5 {proxy_host}:{proxy_port} ERROR: {e}."
+        if args.ping:
+            try:
+                # Ping the proxy to check its latency
+                start_time = time.monotonic()
+                async with session.get(test_url, proxy=f'socks5://{proxy_host}:{proxy_port}', timeout=8) as response:
+                    latency = time.monotonic() - start_time
+                    output += f" PING: {round(latency * 1000, 2)}ms"
+            except:
+                pass
         return is_proxy_ip_present, output
 
     async def main():
@@ -84,4 +94,4 @@ with open("prox.txt", "w") as outfile:
                     print(output)
                     # Write the output to the text file
                     outfile.write(output + "\n")
-    asyncio.run(main())
+    asyncio.run(main())            
