@@ -68,7 +68,7 @@ def verify_ipurl():
             print(f"ERROR: {x}")
     print("\nipurl.txt verification complete!\n")    
     return verified_ipurls    
-print(f"VTSTech-PROXY {build} https://www.VTS-Tech.org/\nStarting proxy check for {len(proxies)} proxies...\n")
+print(f"{build} VTS-Tech.org github.com/Veritas83\nStarting proxy check for {len(proxies)} proxies...\n")
 if args.azenv:
     print("Verifying azenv.txt ...\n")
     print(verify_azenv())
@@ -78,7 +78,7 @@ if args.ipurl:
     print(verify_ipurl())
     quit()
 with open("prox.txt", "w") as outfile:
-    outfile.write(f"VTSTech-PROXY {build} https://www.VTS-Tech.org/\nStarting proxy check for {len(proxies)} proxies...\n")
+    outfile.write(f"{build} VTS-Tech.org github.com/Veritas83\nStarting proxy check for {len(proxies)} proxies...\n")
     async def check_proxy(session, proxy, semaphore):
         #time.sleep(0.1)
         proxy_host, proxy_port = proxy.split(":")
