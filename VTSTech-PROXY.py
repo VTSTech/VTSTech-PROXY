@@ -16,7 +16,7 @@ import argparse
 import requests
 
 from tqdm import tqdm
-build = "VTSTech-PROXY v0.0.2-r07"
+build = "VTSTech-PROXY v0.0.3-r01"
 sys.tracebacklimit = 0
 def handle_interrupt(signal, frame):
     print("\nStopping current proxy check...")
@@ -98,7 +98,7 @@ with open("prox.txt", "w") as outfile:
 	                    is_timeout = False
 	                    if proxy_host in await response.text():
 	                        is_proxy_ip_present = True
-	                        if wan_ip in await response.text() and not args.verbose:
+	                        if wan_ip in await response.text() and args.verbose:
 	                            output = f"{proxy_host}:{proxy_port} ANON LV: 3 (transparent)"
 	                            print(output)	                            
 	                        elif ("HTTP_X_FORWARDED_FOR" and f"{proxy_host}") in await response.text():
