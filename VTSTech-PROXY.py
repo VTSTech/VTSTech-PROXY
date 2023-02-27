@@ -13,27 +13,38 @@ import sys
 import random
 import time
 import argparse
+import requests
+
 from tqdm import tqdm
-build = "VTSTech-PROXY v0.0.2-r05"
+build = "VTSTech-PROXY v0.0.2-r06"
 sys.tracebacklimit = 0
 def handle_interrupt(signal, frame):
     print("\nStopping current proxy check...")
     sys.exit(0)
+with open("ipurl.txt") as f:
+    ip_urls = [line.strip() for line in f.readlines()]    
+def get_public_ip():
+    response = requests.get(random.choice(ip_urls)).text
+    return response
 signal.signal(signal.SIGINT, handle_interrupt)
+#print(wan_ip)
 parser = argparse.ArgumentParser(description=build)
 parser.add_argument("proxies_file", help="path to proxies file")
 parser.add_argument("-p", "--ping", action="store_true", help="toggle ping output")
 parser.add_argument("-t", "--threads", type=int, default=2, help="amount of threads to use (default: 2)")
 parser.add_argument("-c", "--code", action="store_true", help="toggle http status code output")
 parser.add_argument("-u", "--url", action="store_true", help="toggle test url output")
+parser.add_argument("-v", "--verbose", action="store_true", help="verbose, include non-anon and non-200")
 parser.add_argument("-4", "--socks4", action="store_true", help="Use SOCKS4")
+parser.add_argument("-4a", "--socks4a", action="store_true", help="Use SOCKS4")
 parser.add_argument("-5", "--socks5", action="store_true", help="Use SOCKS5 (default)")
 args = parser.parse_args()
 proxies_file = args.proxies_file
+wan_ip=get_public_ip()
 with open(proxies_file) as f:
     proxies = [line.strip() for line in f.readlines()]
 with open("azenv.txt") as f:
-    test_urls = [line.strip() for line in f.readlines()]
+    test_urls = [line.strip() for line in f.readlines()]            
 print(f"VTSTech-PROXY {build} https://www.VTS-Tech.org/\nStarting proxy check for {len(proxies)} proxies...\n")
 with open("prox.txt", "w") as outfile:
     outfile.write(f"VTSTech-PROXY {build} https://www.VTS-Tech.org/\nStarting proxy check for {len(proxies)} proxies...\n")
@@ -42,8 +53,11 @@ with open("prox.txt", "w") as outfile:
         proxy_host, proxy_port = proxy.split(":")
         proxy_port = int(proxy_port)
         socks_uri = "socks5://"
+        output=""
         if args.socks4:
         	socks_uri = "socks4://"
+        elif args.socks4a:
+        	socks_uri = "socks4a://"
         test_url = random.choice(test_urls)
         try:
             async with semaphore:
@@ -53,27 +67,41 @@ with open("prox.txt", "w") as outfile:
 	                    is_timeout = False
 	                    if proxy_host in await response.text():
 	                        is_proxy_ip_present = True
-	                        output = f"{proxy_host}:{proxy_port}"
+	                        if wan_ip in await response.text() and not args.verbose:
+	                            output = f"{proxy_host}:{proxy_port} ANON LV: 3 (transparent)"
+	                            print(output)	                            
+	                        elif f"HTTP_X_FORWARDED_FOR={proxy_host}" in await response.text():
+	                            output = f"{proxy_host}:{proxy_port} ANON LV: 2 (anonymous)"
+	                            print(output)	                            
+	                        elif "HTTP_X_FORWARDED_FOR" not in await response.text():
+	                            output = f"{proxy_host}:{proxy_port} ANON LV: 1 (elite)"
+	                            print(output)
 	                    else:
 	                        is_proxy_ip_present = False
-	                        output = f"{proxy_host}:{proxy_port} ANON: NO."
+	                        if args.verbose:	                        
+	                            output = f"{proxy_host}:{proxy_port} {response.status} {test_url}."
+	                            print(output)	                            
 	                else:
 	                    is_error = False
-	                    is_timeout = False                    
-	                    output = f"{proxy_host}:{proxy_port} {response.status} {test_url}."
+	                    is_timeout = False  
+	                    if args.verbose:
+	                        output = f"{proxy_host}:{proxy_port} {response.status} {test_url}."
+	                        print(output)
 	                    is_proxy_ip_present = False
         except asyncio.TimeoutError as e:
             is_timeout = True
             is_error = False
             is_proxy_ip_present = False
-            output = f"TIMEOUT {proxy_host}:{proxy_port}"
-            pbar.update(1)
+            if args.verbose:
+            	output = f"TIMEOUT {proxy_host}:{proxy_port}"
+            #pbar.update(1)
         except Exception as e:
             is_error = True
             is_proxy_ip_present = False
             is_timeout = False
-            output = f"ERROR {proxy_host}:{proxy_port}"
-            pbar.update(1)
+            if args.verbose:
+            	output = f"ERROR {proxy_host}:{proxy_port}"
+            #pbar.update(1)
         if args.code:
             try:
                     output += f" CODE: {response.status}"
@@ -92,7 +120,7 @@ with open("prox.txt", "w") as outfile:
                     output += f" PING: {round(latency * 1000, 2)}ms"
             except:
                 pass   
-        pbar.update(1)
+        #pbar.update(1)
         return is_proxy_ip_present, is_error, is_timeout, output
 
     async def main():
@@ -113,9 +141,11 @@ with open("prox.txt", "w") as outfile:
 		            results = await asyncio.gather(*tasks)
 		            for is_proxy_ip_present, is_error, is_timeout, output in results:
 		                if is_proxy_ip_present:
-		                    print(output)
-		                    outfile.write(output + "\n")
+		                    #print(output)
+		                    if len(output) > 4:
+		                        outfile.write(output + "\n")
 		                if not is_timeout and not is_error and not is_proxy_ip_present:
-		                    print(output)
-		                    outfile.write(output + "\n")
-    asyncio.run(main())            
+		                    #print(output)
+		                    if len(output) > 4:
+		                        outfile.write(output + "\n")
+    asyncio.run(main())
