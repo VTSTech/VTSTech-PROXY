@@ -16,7 +16,7 @@ import argparse
 import requests
 
 from tqdm import tqdm
-build = "VTSTech-PROXY v0.0.3-r01"
+build = "VTSTech-PROXY v0.0.3-r02"
 sys.tracebacklimit = 0
 def handle_interrupt(signal, frame):
     print("\nStopping current proxy check...")
@@ -31,11 +31,12 @@ parser = argparse.ArgumentParser(description=build)
 parser.add_argument("proxies_file", help="path to proxies file")
 parser.add_argument("-p", "--ping", action="store_true", help="toggle ping output")
 parser.add_argument("-t", "--threads", type=int, default=2, help="amount of threads to use (default: 2)")
+parser.add_argument("-to", "--timeout", type=int, default=8, help="amount of seconds before timeout (default: 8)")
 parser.add_argument("-c", "--code", action="store_true", help="toggle http status code output")
 parser.add_argument("-u", "--url", action="store_true", help="toggle test url output")
-parser.add_argument("-v", "--verbose", action="store_true", help="verbose, include non-anon and non-200")
+parser.add_argument("-v", "--verbose", action="store_true", help="verbose, include non-200")
 parser.add_argument("-4", "--socks4", action="store_true", help="Use SOCKS4")
-parser.add_argument("-4a", "--socks4a", action="store_true", help="Use SOCKS4")
+parser.add_argument("-4a", "--socks4a", action="store_true", help="Use SOCKS4A")
 parser.add_argument("-5", "--socks5", action="store_true", help="Use SOCKS5 (default)")
 parser.add_argument("-az", "--azenv", action="store_true", help="Verify azenv.txt list")
 parser.add_argument("-ip", "--ipurl", action="store_true", help="Verify ipurl.txt list")
@@ -50,7 +51,7 @@ def verify_azenv():
     verified_urls=""
     for x in test_urls:
         try:
-            r = requests.get(x, timeout=8)
+            r = requests.get(x, timeout=args.timeout)
             if r.status_code==200 and wan_ip in r.text:
                 verified_urls+=f"{x}\n"            
         except:
@@ -61,7 +62,7 @@ def verify_ipurl():
     verified_ipurls=""
     for x in ip_urls:
         try:
-            r = requests.get(x, timeout=8)
+            r = requests.get(x, timeout=args.timeout)
             if r.status_code==200 and wan_ip in r.text:
                 verified_ipurls+=f"{x}\n"            
         except:
@@ -92,22 +93,23 @@ with open("prox.txt", "w") as outfile:
         test_url = random.choice(test_urls)
         try:
             async with semaphore:
-	            async with session.get(test_url, proxy=f'{socks_uri}{proxy_host}:{proxy_port}', timeout=8) as response:
+	            async with session.get(test_url, proxy=f'{socks_uri}{proxy_host}:{proxy_port}', timeout=args.timeout) as response:
 	                if response.status < 503:
 	                    is_error = False
 	                    is_timeout = False
 	                    if proxy_host in await response.text():
 	                        is_proxy_ip_present = True
-	                        if wan_ip in await response.text() and args.verbose:
+	                        if (wan_ip and "HTTP_X_FORWARDED_FOR") in await response.text():
 	                            output = f"{proxy_host}:{proxy_port} ANON LV: 3 (transparent)"
 	                            print(output)	                            
-	                        elif ("HTTP_X_FORWARDED_FOR" and f"{proxy_host}") in await response.text():
+	                        elif ("HTTP_X_FORWARDED_FOR") in await response.text():
 	                            if wan_ip not in await response.text():
 	                                output = f"{proxy_host}:{proxy_port} ANON LV: 2 (anonymous)"
 	                                print(output)	                            
 	                        elif "HTTP_X_FORWARDED_FOR" not in await response.text():
-	                            output = f"{proxy_host}:{proxy_port} ANON LV: 1 (elite)"
-	                            print(output)
+	                            if f"REMOTE_ADDR = {proxy_host}"in await response.text():
+	                                output = f"{proxy_host}:{proxy_port} ANON LV: 1 (elite)"
+	                                print(output)
 	                    else:
 	                        is_proxy_ip_present = False
 	                        if args.verbose:	                        
@@ -145,7 +147,7 @@ with open("prox.txt", "w") as outfile:
         if args.ping:
             try:
                 start_time = time.monotonic()
-                async with session.get(test_url, proxy=f'{socks_uri}{proxy_host}:{proxy_port}', timeout=8) as response:
+                async with session.get(test_url, proxy=f'{socks_uri}{proxy_host}:{proxy_port}', timeout=args.timeout) as response:
                     latency = time.monotonic() - start_time
                     output += f" PING: {round(latency * 1000, 2)}ms"
             except:
@@ -169,11 +171,9 @@ with open("prox.txt", "w") as outfile:
                 results = await asyncio.gather(*tasks)
                 for is_proxy_ip_present, is_error, is_timeout, output in results:
                     if is_proxy_ip_present:
-                        #print(output)
                         if len(output) > 4:
                             outfile.write(output + "\n")
                     if not is_timeout and not is_error and not is_proxy_ip_present:
-                        #print(output)
                         if len(output) > 4:
                             outfile.write(output + "\n")
     asyncio.run(main())
