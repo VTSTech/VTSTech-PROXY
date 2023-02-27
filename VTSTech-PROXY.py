@@ -16,7 +16,7 @@ import argparse
 import requests
 
 from tqdm import tqdm
-build = "VTSTech-PROXY v0.0.3-r02"
+build = "VTSTech-PROXY v0.0.3-r03"
 sys.tracebacklimit = 0
 def handle_interrupt(signal, frame):
     print("\nStopping current proxy check...")
@@ -35,6 +35,7 @@ parser.add_argument("-to", "--timeout", type=int, default=8, help="amount of sec
 parser.add_argument("-c", "--code", action="store_true", help="toggle http status code output")
 parser.add_argument("-u", "--url", action="store_true", help="toggle test url output")
 parser.add_argument("-v", "--verbose", action="store_true", help="verbose, include non-200")
+parser.add_argument("-s", "--skip", action="store_true", help="exclude transparent proxies from output")
 parser.add_argument("-4", "--socks4", action="store_true", help="Use SOCKS4")
 parser.add_argument("-4a", "--socks4a", action="store_true", help="Use SOCKS4A")
 parser.add_argument("-5", "--socks5", action="store_true", help="Use SOCKS5 (default)")
@@ -99,7 +100,7 @@ with open("prox.txt", "w") as outfile:
 	                    is_timeout = False
 	                    if proxy_host in await response.text():
 	                        is_proxy_ip_present = True
-	                        if (wan_ip and "HTTP_X_FORWARDED_FOR") in await response.text():
+	                        if (wan_ip and "HTTP_X_FORWARDED_FOR") in await response.text() and not args.skip:
 	                            output = f"{proxy_host}:{proxy_port} ANON LV: 3 (transparent)"
 	                            print(output)	                            
 	                        elif ("HTTP_X_FORWARDED_FOR") in await response.text():
