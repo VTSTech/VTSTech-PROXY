@@ -14,9 +14,47 @@ import random
 import time
 import argparse
 import requests
+import sqlite3
 
-from tqdm import tqdm
-build = "VTSTech-PROXY v0.0.3-r03"
+build = "VTSTech-PROXY v0.0.3-r04"
+# Open a connection to the SQLite database
+conn = sqlite3.connect('proxy.db')
+c = conn.cursor()
+
+# Create the table to hold the data
+c.execute('CREATE TABLE IF NOT EXISTS proxies (ip_port TEXT PRIMARY KEY, anonymity TEXT, level TEXT, url TEXT, ping REAL, last_tested DATE)')
+
+# Open the text file and read in the lines
+with open('prox.txt', 'r') as f:
+    lines = f.readlines()[2:]
+
+# Remove new line characters and split lines into columns
+for line in lines:
+    line = line.strip()
+    columns = line.split(' ')
+    ip_port = columns[0]
+    anonymity = columns[4]
+    level = columns[3]
+    url = ''
+    ping = ''
+    for i in range(5, len(columns)):
+        if columns[i].startswith('URL:'):
+            url = columns[i+1]
+        elif columns[i].startswith('PING:'):
+            ping = columns[i+1][:-2]
+    
+    # Check if the proxy already exists in the database
+    result = c.execute('SELECT * FROM proxies WHERE ip_port = ?', (ip_port,)).fetchone()
+    if result:
+        # Update the values
+        c.execute('UPDATE proxies SET anonymity = ?, level = ?, url = ?, ping = ?, last_tested = date() WHERE ip_port = ?', (anonymity, level, url, ping, ip_port))
+    else:
+        # Insert a new row
+        c.execute('INSERT INTO proxies VALUES (?, ?, ?, ?, ?, date())', (ip_port, anonymity, level, url, ping))
+
+# Commit the changes to the database and close the connection
+conn.commit()
+conn.close()
 sys.tracebacklimit = 0
 def handle_interrupt(signal, frame):
     print("\nStopping current proxy check...")
@@ -102,15 +140,32 @@ with open("prox.txt", "w") as outfile:
 	                        is_proxy_ip_present = True
 	                        if (wan_ip and "HTTP_X_FORWARDED_FOR") in await response.text() and not args.skip:
 	                            output = f"{proxy_host}:{proxy_port} ANON LV: 3 (transparent)"
-	                            print(output)	                            
 	                        elif ("HTTP_X_FORWARDED_FOR") in await response.text():
 	                            if wan_ip not in await response.text():
 	                                output = f"{proxy_host}:{proxy_port} ANON LV: 2 (anonymous)"
-	                                print(output)	                            
 	                        elif "HTTP_X_FORWARDED_FOR" not in await response.text():
 	                            if f"REMOTE_ADDR = {proxy_host}"in await response.text():
 	                                output = f"{proxy_host}:{proxy_port} ANON LV: 1 (elite)"
-	                                print(output)
+	                        if args.code:
+	                            try:
+                                        output += f" CODE: {response.status}"
+	                            except:
+	                                pass
+	                        if args.url:
+	                            try:
+                                        output += f" URL: {test_url}"
+	                            except:
+	                                pass
+	                        if args.ping:
+	                            try:
+	                                start_time = time.monotonic()
+	                                async with session.get(test_url, proxy=f'{socks_uri}{proxy_host}:{proxy_port}', timeout=args.timeout) as response:
+	                                    latency = time.monotonic() - start_time
+	                                    output += f" PING: {round(latency * 1000, 2)}ms"
+	                            except:
+	                                pass
+	                        if is_proxy_ip_present == True:
+	                            print(output)
 	                    else:
 	                        is_proxy_ip_present = False
 	                        if args.verbose:	                        
@@ -134,25 +189,7 @@ with open("prox.txt", "w") as outfile:
             is_proxy_ip_present = False
             is_timeout = False
             if args.verbose:
-            	output = f"ERROR {proxy_host}:{proxy_port}"
-        if args.code:
-            try:
-                    output += f" CODE: {response.status}"
-            except:
-                pass
-        if args.url:
-            try:
-                    output += f" URL: {test_url}"
-            except:
-                pass
-        if args.ping:
-            try:
-                start_time = time.monotonic()
-                async with session.get(test_url, proxy=f'{socks_uri}{proxy_host}:{proxy_port}', timeout=args.timeout) as response:
-                    latency = time.monotonic() - start_time
-                    output += f" PING: {round(latency * 1000, 2)}ms"
-            except:
-                pass   
+            	output = f"ERROR {proxy_host}:{proxy_port}"   
         return is_proxy_ip_present, is_error, is_timeout, output
 
     async def main():
