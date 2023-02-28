@@ -15,47 +15,58 @@ import time
 import argparse
 import requests
 import sqlite3
-
-build = "VTSTech-PROXY v0.0.3-r04"
-# Open a connection to the SQLite database
-conn = sqlite3.connect('proxy.db')
-c = conn.cursor()
-
-# Create the table to hold the data
-c.execute('CREATE TABLE IF NOT EXISTS proxies (ip_port TEXT PRIMARY KEY, anonymity TEXT, level TEXT, url TEXT, ping REAL, last_tested DATE)')
-
-# Open the text file and read in the lines
-with open('prox.txt', 'r') as f:
-    lines = f.readlines()[2:]
-
-# Remove new line characters and split lines into columns
-for line in lines:
-    line = line.strip()
-    columns = line.split(' ')
-    ip_port = columns[0]
-    anonymity = columns[4]
-    level = columns[3]
-    url = ''
-    ping = ''
-    for i in range(5, len(columns)):
-        if columns[i].startswith('URL:'):
-            url = columns[i+1]
-        elif columns[i].startswith('PING:'):
-            ping = columns[i+1][:-2]
-    
-    # Check if the proxy already exists in the database
-    result = c.execute('SELECT * FROM proxies WHERE ip_port = ?', (ip_port,)).fetchone()
-    if result:
-        # Update the values
-        c.execute('UPDATE proxies SET anonymity = ?, level = ?, url = ?, ping = ?, last_tested = date() WHERE ip_port = ?', (anonymity, level, url, ping, ip_port))
-    else:
-        # Insert a new row
-        c.execute('INSERT INTO proxies VALUES (?, ?, ?, ?, ?, date())', (ip_port, anonymity, level, url, ping))
-
-# Commit the changes to the database and close the connection
-conn.commit()
-conn.close()
+build = "VTSTech-PROXY v0.0.4-r01"
 sys.tracebacklimit = 0
+ping_urls = [
+    "https://www.site24x7.com/ping-test.html",
+    "https://www.meter.net/tools/world-ping-test/",
+    "https://tools.pingdom.com/",
+    "http://ping-test.net/speed_test",
+    "https://www.highspeedinternet.com/tools/speed-test",
+    "https://www.uptrends.com/tools/ping-test",
+    "https://www.speedcheck.org/",
+    "https://www.pingwebsite.com/ping",
+    "https://www.atatus.com/tools/ping"
+]
+def updatedb():
+    # Open a connection to the SQLite database
+    conn = sqlite3.connect('proxy.db')
+    c = conn.cursor()
+    print("Updating proxy.db ...\n")
+    # Create the table to hold the data
+    c.execute('CREATE TABLE IF NOT EXISTS proxies (ip_port TEXT PRIMARY KEY, anonymity TEXT, level TEXT, url TEXT, ping REAL, last_tested DATE)')
+
+    # Open the text file and read in the lines
+    with open('prox.txt', 'r') as f:
+        lines = f.readlines()[2:]
+
+    # Remove new line characters and split lines into columns
+    for line in lines:
+        line = line.strip()
+        columns = line.split(' ')
+        ip_port = columns[0]
+        anonymity = columns[4]
+        level = columns[3]
+        url = ''
+        ping = ''
+        for i in range(5, len(columns)):
+            if columns[i].startswith('URL:'):
+                url = columns[i+1]
+            elif columns[i].startswith('PING:'):
+                ping = columns[i+1][:-2]
+        
+        # Check if the proxy already exists in the database
+        result = c.execute('SELECT * FROM proxies WHERE ip_port = ?', (ip_port,)).fetchone()
+        if result:
+            # Update the values
+            c.execute('UPDATE proxies SET anonymity = ?, level = ?, url = ?, ping = ?, last_tested = date() WHERE ip_port = ?', (anonymity, level, url, ping, ip_port))
+        else:
+            # Insert a new row
+            c.execute('INSERT INTO proxies VALUES (?, ?, ?, ?, ?, date())', (ip_port, anonymity, level, url, ping))
+
+    # Commit the changes to the database and close the connection
+    conn.commit()
+    conn.close()
 def handle_interrupt(signal, frame):
     print("\nStopping current proxy check...")
     sys.exit(0)
@@ -66,7 +77,7 @@ def get_public_ip():
     return response
 signal.signal(signal.SIGINT, handle_interrupt)
 parser = argparse.ArgumentParser(description=build)
-parser.add_argument("proxies_file", help="path to proxies file")
+parser.add_argument("-f", "--file", default="px.txt", help="path to proxy list")
 parser.add_argument("-p", "--ping", action="store_true", help="toggle ping output")
 parser.add_argument("-t", "--threads", type=int, default=2, help="amount of threads to use (default: 2)")
 parser.add_argument("-to", "--timeout", type=int, default=8, help="amount of seconds before timeout (default: 8)")
@@ -79,9 +90,9 @@ parser.add_argument("-4a", "--socks4a", action="store_true", help="Use SOCKS4A")
 parser.add_argument("-5", "--socks5", action="store_true", help="Use SOCKS5 (default)")
 parser.add_argument("-az", "--azenv", action="store_true", help="Verify azenv.txt list")
 parser.add_argument("-ip", "--ipurl", action="store_true", help="Verify ipurl.txt list")
+parser.add_argument("-db", "--db", action="store_true", help="update proxy.db")
 args = parser.parse_args()
-proxies_file = args.proxies_file
-wan_ip=get_public_ip()
+proxies_file = args.file
 with open(proxies_file) as f:
     proxies = [line.strip() for line in f.readlines()]
 with open("azenv.txt") as f:
@@ -109,6 +120,7 @@ def verify_ipurl():
     print("\nipurl.txt verification complete!\n")    
     return verified_ipurls    
 print(f"{build} VTS-Tech.org github.com/Veritas83\nStarting proxy check for {len(proxies)} proxies...\n")
+wan_ip=get_public_ip()
 if args.azenv:
     print("Verifying azenv.txt ...\n")
     print(verify_azenv())
@@ -117,81 +129,99 @@ if args.ipurl:
     print("Verifying ipurl.txt ...\n")
     print(verify_ipurl())
     quit()
+if args.db:
+    updatedb()
+    quit()
+updatedb()
 with open("prox.txt", "w") as outfile:
     outfile.write(f"{build} VTS-Tech.org github.com/Veritas83\nStarting proxy check for {len(proxies)} proxies...\n")
+    # Open a connection to the SQLite database
+    conn = sqlite3.connect('proxy.db')
+    c = conn.cursor()
+    print("Accessing proxy.db ...\n")
     async def check_proxy(session, proxy, semaphore):
         #time.sleep(0.1)
         proxy_host, proxy_port = proxy.split(":")
         proxy_port = int(proxy_port)
         socks_uri = "socks5://"
-        output=""
+        output=str(0)
         if args.socks4:
         	socks_uri = "socks4://"
         elif args.socks4a:
         	socks_uri = "socks4a://"
         test_url = random.choice(test_urls)
-        try:
-            async with semaphore:
-	            async with session.get(test_url, proxy=f'{socks_uri}{proxy_host}:{proxy_port}', timeout=args.timeout) as response:
-	                if response.status < 503:
+        # Check if the proxy already exists in the database
+        result = c.execute('SELECT * FROM proxies WHERE ip_port = ?', (proxy,)).fetchone()
+        if result:
+            print(f"{proxy} already exists in the database!")
+        else:
+            try:
+                async with semaphore:
+	                async with session.get(test_url, proxy=f'{socks_uri}{proxy_host}:{proxy_port}', timeout=args.timeout) as response:
 	                    is_error = False
 	                    is_timeout = False
-	                    if proxy_host in await response.text():
-	                        is_proxy_ip_present = True
-	                        if (wan_ip and "HTTP_X_FORWARDED_FOR") in await response.text() and not args.skip:
-	                            output = f"{proxy_host}:{proxy_port} ANON LV: 3 (transparent)"
-	                        elif ("HTTP_X_FORWARDED_FOR") in await response.text():
-	                            if wan_ip not in await response.text():
-	                                output = f"{proxy_host}:{proxy_port} ANON LV: 2 (anonymous)"
-	                        elif "HTTP_X_FORWARDED_FOR" not in await response.text():
-	                            if f"REMOTE_ADDR = {proxy_host}"in await response.text():
-	                                output = f"{proxy_host}:{proxy_port} ANON LV: 1 (elite)"
-	                        if args.code:
-	                            try:
-                                        output += f" CODE: {response.status}"
-	                            except:
-	                                pass
-	                        if args.url:
-	                            try:
-                                        output += f" URL: {test_url}"
-	                            except:
-	                                pass
-	                        if args.ping:
-	                            try:
-	                                start_time = time.monotonic()
-	                                async with session.get(test_url, proxy=f'{socks_uri}{proxy_host}:{proxy_port}', timeout=args.timeout) as response:
-	                                    latency = time.monotonic() - start_time
-	                                    output += f" PING: {round(latency * 1000, 2)}ms"
-	                            except:
-	                                pass
-	                        if is_proxy_ip_present == True:
-	                            print(output)
-	                    else:
-	                        is_proxy_ip_present = False
-	                        if args.verbose:	                        
-	                            output = f"{proxy_host}:{proxy_port} {response.status} {test_url}."
-	                            print(output)	                            
-	                else:
-	                    is_error = False
-	                    is_timeout = False  
-	                    if args.verbose:
-	                        output = f"{proxy_host}:{proxy_port} {response.status} {test_url}."
-	                        print(output)
 	                    is_proxy_ip_present = False
-        except asyncio.TimeoutError as e:
-            is_timeout = True
-            is_error = False
-            is_proxy_ip_present = False
-            if args.verbose:
-            	output = f"TIMEOUT {proxy_host}:{proxy_port}"
-        except Exception as e:
-            is_error = True
-            is_proxy_ip_present = False
-            is_timeout = False
-            if args.verbose:
-            	output = f"ERROR {proxy_host}:{proxy_port}"   
-        return is_proxy_ip_present, is_error, is_timeout, output
-
+	                    output=str(0)
+	                    if response.status < 503:
+	                        if proxy_host in await response.text():
+	                            is_proxy_ip_present = True
+	                            if (wan_ip and "HTTP_X_FORWARDED_FOR") in await response.text() and not args.skip:
+	                                output = f"{proxy_host}:{proxy_port} ANON LV: 3 (transparent)"
+	                            elif ("HTTP_X_FORWARDED_FOR") in await response.text():
+	                                if wan_ip not in await response.text():
+	                                    output = f"{proxy_host}:{proxy_port} ANON LV: 2 (anonymous)"
+	                            elif "HTTP_X_FORWARDED_FOR" not in await response.text():
+	                                if f"REMOTE_ADDR = {proxy_host}"in await response.text():
+	                                    output = f"{proxy_host}:{proxy_port} ANON LV: 1 (elite)"
+	                            if args.code:
+	                                try:
+                                            output += f" CODE: {response.status}"
+	                                except:
+	                                    pass
+	                            if args.url:
+	                                try:
+                                            output += f" URL: {test_url}"
+	                                except:
+	                                    pass
+	                            if args.ping:
+	                                try:
+	                                    start_time = time.monotonic()
+	                                    async with session.get(random.choice(ping_urls), proxy=f'{socks_uri}{proxy_host}:{proxy_port}', timeout=args.timeout) as response:
+	                                        latency = time.monotonic() - start_time
+	                                        output += f" PING: {round(latency * 1000, 2)}ms"
+	                                except:
+	                                    pass
+	                            if is_proxy_ip_present == True:
+	                                print(output)
+	                        else:
+	                            is_proxy_ip_present = False
+	                            if args.verbose:	                        
+	                                output = f"{proxy_host}:{proxy_port} {response.status} {test_url}."
+	                                print(output)	                            
+	                    else:
+	                        is_error = False
+	                        is_timeout = False  
+	                        if args.verbose:
+	                            output = f"{proxy_host}:{proxy_port} {response.status} {test_url}."
+	                            print(output)
+	                        is_proxy_ip_present = False
+	                        output = f"{proxy_host}:{proxy_port} {response.status} {test_url}."
+            except asyncio.TimeoutError as e:
+                is_timeout = True
+                is_error = False
+                is_proxy_ip_present = False
+                if args.verbose:
+                	output = f"TIMEOUT {proxy_host}:{proxy_port}"
+            except Exception as e:
+                is_error = True
+                is_proxy_ip_present = False
+                is_timeout = False
+                if args.verbose:
+                	output = f"ERROR {proxy_host}:{proxy_port}"   
+#            print(f"DEBUG: {is_proxy_ip_present}, {is_error}, {is_timeout}, {output}")
+            if len(output)>9 and output[0] != "0" and is_error==False and is_timeout==False and is_proxy_ip_present==True:
+                outfile.write(output + "\n")
+            return is_proxy_ip_present, is_error, is_timeout, output
     async def main():
         if args.threads:
             try:
@@ -201,17 +231,16 @@ with open("prox.txt", "w") as outfile:
         semaphore = asyncio.Semaphore(value=threads)
         async with semaphore:
             async with aiohttp.ClientSession() as session:
+                is_error = False
+                is_timeout = False
+                is_proxy_ip_present = False
+                output=""
                 tasks = []
-                total_proxies = len(proxies)
-                for proxy in proxies:
-                    task = asyncio.create_task(check_proxy(session, proxy, semaphore))
-                    tasks.append(task)
-                results = await asyncio.gather(*tasks)
-                for is_proxy_ip_present, is_error, is_timeout, output in results:
-                    if is_proxy_ip_present:
-                        if len(output) > 4:
-                            outfile.write(output + "\n")
-                    if not is_timeout and not is_error and not is_proxy_ip_present:
-                        if len(output) > 4:
-                            outfile.write(output + "\n")
+                if proxies is not None:
+                    total_proxies = len(proxies)
+                    for proxy in proxies:
+                        task = asyncio.create_task(check_proxy(session, proxy, semaphore))
+                        if task is not None:
+                            tasks.append(task)
+                    results = await asyncio.gather(*tasks)
     asyncio.run(main())
