@@ -248,12 +248,12 @@ with open("prox.txt", "w") as outfile:
 	                    if response.status < 503:
 	                        if proxy_host in await response.text():
 	                            is_proxy_ip_present = True
-	                            if (wan_ip and "HTTP_X_FORWARDED_FOR") in await response.text() and not args.skip:
+	                            if ("HTTP_X_FORWARDED_FOR" and wan_ip) in await response.text() and not args.skip:
 	                                output = f"{proxy_host}:{proxy_port} ANON LV: 3 (transparent)"
 	                            elif ("HTTP_X_FORWARDED_FOR") in await response.text():
 	                                if wan_ip not in await response.text():
 	                                    output = f"{proxy_host}:{proxy_port} ANON LV: 2 (anonymous)"
-	                            elif "HTTP_X_FORWARDED_FOR" not in await response.text():
+	                            elif ("HTTP_X_FORWARDED_FOR" and wan_ip) not in await response.text():
 	                                if f"REMOTE_ADDR = {proxy_host}"in await response.text():
 	                                    output = f"{proxy_host}:{proxy_port} ANON LV: 1 (elite)"
 	                            if args.code:
