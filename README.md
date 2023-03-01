@@ -1,4 +1,4 @@
-<img src="https://cdn.discordapp.com/attachments/796593977985466408/1080313528247910470/image.png">
+<img src="https://cdn.discordapp.com/attachments/796593977985466408/1080601451941859489/image.png">
 <img src="https://cdn.discordapp.com/attachments/796593977985466408/1080312791702982746/image.png">
 # VTSTech-PROXY
  Python script that asynchronously checks a list of SOCKS4/4A/5 proxies for anonymity and writes the results to a text file and sqlite db. 

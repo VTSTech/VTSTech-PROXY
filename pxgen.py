@@ -39,8 +39,8 @@ def download_and_merge_text_files(urls, output_file_path):
 
         # Split the text into lines and add the unique lines to the set
         for line in text.split("\n"):
-            unique_lines.add(line)
-
+            if len(line)>8:unique_lines.add(line)
+            
     # Convert the set of unique lines back to a list and sort it
     sorted_lines = sorted(list(unique_lines))
 

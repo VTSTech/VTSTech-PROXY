@@ -145,6 +145,7 @@ def export_all_proxies():
         print(f'Successfully exported {len(results)} proxies to px.txt')         
 def dbstats():
     conn = sqlite3.connect(dbname)
+    print(f"Accessing {dbname} ...\n")
     c = conn.cursor()
     total_proxies = c.execute('SELECT COUNT(*) FROM proxies').fetchone()[0]
     total_elite = c.execute('SELECT COUNT(*) FROM proxies WHERE level = 1').fetchone()[0]
