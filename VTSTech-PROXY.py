@@ -17,7 +17,7 @@ import requests
 import sqlite3
 import pxgen
 
-build = "VTSTech-PROXY v0.0.4-r03"
+build = "VTSTech-PROXY v0.0.4-r04"
 def handle_interrupt(signal, frame):
     print("\nStopping current proxy check...")
     sys.exit(0)
@@ -162,6 +162,7 @@ with open("azenv.txt") as f:
 with open("pingurl.txt") as f:
     ping_urls = [line.strip() for line in f.readlines()]    
 def verify_azenv():
+    wan_ip=get_public_ip()
     verified_urls=""
     for x in test_urls:
         try:
@@ -169,10 +170,11 @@ def verify_azenv():
             if r.status_code==200 and wan_ip in r.text:
                 verified_urls+=f"{x}\n"            
         except:
-            print(f"ERROR: {x}")
+            print(f"ERROR: {r.status_code} {x} ")
     print("\nazenv.txt verification complete!\n")    
     return verified_urls
 def verify_ipurl():
+    wan_ip=get_public_ip()
     verified_ipurls=""
     for x in ip_urls:
         try:

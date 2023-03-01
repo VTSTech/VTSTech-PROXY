@@ -1,15 +1,17 @@
-<img src="https://cdn.discordapp.com/attachments/796593977985466408/1079993165068644432/image.png">
+<img src="https://cdn.discordapp.com/attachments/796593977985466408/1080313528247910470/image.png">
+<img src="https://cdn.discordapp.com/attachments/796593977985466408/1080312791702982746/image.png">
 # VTSTech-PROXY
- Python script that asynchronously checks a list of SOCKS5 proxies for anonymity and writes the results to a text file.
+ Python script that asynchronously checks a list of SOCKS4/4A/5 proxies for anonymity and writes the results to a text file and sqlite db. 
 # Usage
 <pre>
-usage: VTSTech-PROXY.py [-h] [-f FILE] [-p] [-t THREADS] [-to TIMEOUT] [-c] [-u] [-v] [-s] [-4] [-4a] [-5] [-az] [-ip] [-db]
+usage: VTSTech-PROXY.py [-h] [-f FILE] [-p] [-t THREADS] [-to TIMEOUT] [-c] [-u] [-v] [-s] [-r] [-4] [-4a] [-5] [-az] [-ip] [-db] [-st] [-xe] [-xa] [-xt]
+                        [-xx] [-gen]
 
-VTSTech-PROXY v0.0.4-r01
+VTSTech-PROXY v0.0.4-r04
 
 options:
   -h, --help            show this help message and exit
-  -f FILE, --file FILE  path to proxy list
+  -f FILE, --file FILE  path to proxy list (default: px.txt)
   -p, --ping            toggle ping output
   -t THREADS, --threads THREADS
                         amount of threads to use (default: 2)
@@ -19,10 +21,17 @@ options:
   -u, --url             toggle test url output
   -v, --verbose         verbose, include non-200
   -s, --skip            exclude transparent proxies from output
+  -r, --recheck         allow rechecking of known proxies
   -4, --socks4          Use SOCKS4
   -4a, --socks4a        Use SOCKS4A
   -5, --socks5          Use SOCKS5 (default)
   -az, --azenv          Verify azenv.txt list
   -ip, --ipurl          Verify ipurl.txt list
-  -db, --db             update proxy.db
+  -db, --db             update proxy.db with results of previous scan
+  -st, --stats          display proxy.db statistics
+  -xe, --elite          export all elite.txt
+  -xa, --anon           export all anon.txt
+  -xt, --trans          export all trans.txt
+  -xx, --all            export all px.txt
+  -gen, --pxgen         generate socks4.txt and socks5.txt
 </pre> 
