@@ -7,23 +7,12 @@
 import requests
 
 socks5 = [
-    "https://raw.githubusercontent.com/hookzof/socks5_list/master/proxy.txt",
-    "https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt",
-    "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/socks5.txt",
-    "https://raw.githubusercontent.com/ShiftyTR/Proxy-List/master/socks5.txt",
-    "https://raw.githubusercontent.com/jetkai/proxy-list/main/online-proxies/txt/proxies-socks5.txt",
-    "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies_anonymous/socks5.txt",
-    "https://raw.githubusercontent.com/rdavydov/proxy-list/main/proxies_anonymous/socks5.txt",
-    "https://raw.githubusercontent.com/ALIILAPRO/Proxy/main/socks5.txt",
-    "https://raw.githubusercontent.com/prxchk/proxy-list/main/socks5.txt"
+    "https://raw.githubusercontent.com/prxchk/proxy-list/main/socks5.txt",
+    "https://raw.githubusercontent.com/hanwayTech/free-proxy-list/main/socks5.txt"
 ]
 socks4 = [
-    "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies_anonymous/socks4.txt",
-    "https://raw.githubusercontent.com/roosterkid/openproxylist/main/SOCKS4_RAW.txt",
-    "https://raw.githubusercontent.com/rdavydov/proxy-list/main/proxies_anonymous/socks4.txt",
-    "https://raw.githubusercontent.com/jetkai/proxy-list/main/online-proxies/txt/proxies-socks4.txt",
-    "https://raw.githubusercontent.com/ALIILAPRO/Proxy/main/socks4.txt",
-    "https://raw.githubusercontent.com/prxchk/proxy-list/main/socks4.txt"
+    "https://raw.githubusercontent.com/prxchk/proxy-list/main/socks4.txt",
+    "https://raw.githubusercontent.com/hanwayTech/free-proxy-list/main/socks4.txt"
 ]
 
 def remove_duplicate_lines(file_path):

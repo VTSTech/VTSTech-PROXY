@@ -40,10 +40,10 @@ parser.add_argument("-az", "--azenv", action="store_true", help="Verify azenv.tx
 parser.add_argument("-ip", "--ipurl", action="store_true", help="Verify ipurl.txt list")
 parser.add_argument("-db", "--db", action="store_true", help="update proxy.db with results of previous scan")
 parser.add_argument("-st", "--stats", action="store_true", help="display proxy.db statistics")
-parser.add_argument("-xe", "--elite", action="store_true", help="expore all elite.txt")
-parser.add_argument("-xa", "--anon", action="store_true", help="expore all anon.txt")
-parser.add_argument("-xt", "--trans", action="store_true", help="expore all trans.txt")
-parser.add_argument("-xx", "--all", action="store_true", help="expore all px.txt")
+parser.add_argument("-xe", "--elite", action="store_true", help="export all elite.txt")
+parser.add_argument("-xa", "--anon", action="store_true", help="export all anon.txt")
+parser.add_argument("-xt", "--trans", action="store_true", help="export all trans.txt")
+parser.add_argument("-xx", "--all", action="store_true", help="export all px.txt")
 parser.add_argument("-gen", "--pxgen", action="store_true", help="generate socks4.txt and socks5.txt")
 args = parser.parse_args()
 proxies_file = args.file
@@ -301,7 +301,6 @@ with open("prox.txt", "w") as outfile:
                 is_timeout = False
                 if args.verbose:
                 	output = f"ERROR {proxy_host}:{proxy_port}"   
-#            print(f"DEBUG: {is_proxy_ip_present}, {is_error}, {is_timeout}, {output}")
             if len(output)>9 and output[0] != "0" and is_error==False and is_timeout==False and is_proxy_ip_present==True:
                 outfile.write(output + "\n")
             return is_proxy_ip_present, is_error, is_timeout, output
