@@ -15,14 +15,47 @@ import time
 import argparse
 import requests
 import sqlite3
-build = "VTSTech-PROXY v0.0.4-r03"
-sys.tracebacklimit = 0
+import pxgen
 
+build = "VTSTech-PROXY v0.0.4-r03"
+def handle_interrupt(signal, frame):
+    print("\nStopping current proxy check...")
+    sys.exit(0)
+sys.tracebacklimit = 0
+signal.signal(signal.SIGINT, handle_interrupt)
+parser = argparse.ArgumentParser(description=build)
+parser.add_argument("-f", "--file", default="px.txt", help="path to proxy list (default: px.txt)")
+parser.add_argument("-p", "--ping", action="store_true", help="toggle ping output")
+parser.add_argument("-t", "--threads", type=int, default=2, help="amount of threads to use (default: 2)")
+parser.add_argument("-to", "--timeout", type=int, default=8, help="amount of seconds before timeout (default: 8)")
+parser.add_argument("-c", "--code", action="store_true", help="toggle http status code output")
+parser.add_argument("-u", "--url", action="store_true", help="toggle test url output")
+parser.add_argument("-v", "--verbose", action="store_true", help="verbose, include non-200")
+parser.add_argument("-s", "--skip", action="store_true", help="exclude transparent proxies from output")
+parser.add_argument("-r", "--recheck", action="store_true", help="allow rechecking of known proxies")
+parser.add_argument("-4", "--socks4", action="store_true", help="Use SOCKS4")
+parser.add_argument("-4a", "--socks4a", action="store_true", help="Use SOCKS4A")
+parser.add_argument("-5", "--socks5", action="store_true", help="Use SOCKS5 (default)")
+parser.add_argument("-az", "--azenv", action="store_true", help="Verify azenv.txt list")
+parser.add_argument("-ip", "--ipurl", action="store_true", help="Verify ipurl.txt list")
+parser.add_argument("-db", "--db", action="store_true", help="update proxy.db with results of previous scan")
+parser.add_argument("-st", "--stats", action="store_true", help="display proxy.db statistics")
+parser.add_argument("-xe", "--elite", action="store_true", help="expore all elite.txt")
+parser.add_argument("-xa", "--anon", action="store_true", help="expore all anon.txt")
+parser.add_argument("-xt", "--trans", action="store_true", help="expore all trans.txt")
+parser.add_argument("-xx", "--all", action="store_true", help="expore all px.txt")
+parser.add_argument("-gen", "--pxgen", action="store_true", help="generate socks4.txt and socks5.txt")
+args = parser.parse_args()
+proxies_file = args.file
+if args.socks4 or args.socks4a:
+    dbname="socks4.db"
+else:
+    dbname="proxy.db"
 def updatedb():
     # Open a connection to the SQLite database
-    conn = sqlite3.connect('proxy.db')
+    conn = sqlite3.connect(dbname)
     c = conn.cursor()
-    print("Updating proxy.db ...\n")
+    print(f"Updating {dbname} ...\n")
     # Create the table to hold the data
     c.execute('CREATE TABLE IF NOT EXISTS proxies (ip_port TEXT PRIMARY KEY, anonymity TEXT, level TEXT, url TEXT, ping REAL, last_tested DATE)')
 
@@ -57,16 +90,25 @@ def updatedb():
     # Commit the changes to the database and close the connection
     conn.commit()
     conn.close()
-def handle_interrupt(signal, frame):
-    print("\nStopping current proxy check...")
-    sys.exit(0)
+def get_prox():
+    output_file_path = "socks5.txt"
+    pxgen.download_and_merge_text_files(pxgen.socks5, output_file_path)
+    print("socks5.txt written!")
+    pxgen.remove_duplicate_lines("./socks5.txt")
+    print("duplicates removed!")
+
+    output_file_path = "socks4.txt"
+    pxgen.download_and_merge_text_files(pxgen.socks4, output_file_path)
+    print("socks4.txt written!")
+    pxgen.remove_duplicate_lines("./socks4.txt")
+    print("duplicates removed!")
 with open("ipurl.txt") as f:
     ip_urls = [line.strip() for line in f.readlines()]    
 def get_public_ip():
     response = requests.get(random.choice(ip_urls)).text
     return response
 def export_elite_proxies():
-    with sqlite3.connect('proxy.db') as conn:
+    with sqlite3.connect(dbname) as conn:
         c = conn.cursor()
         c.execute("SELECT * FROM proxies WHERE level='1'")
         results = c.fetchall()
@@ -75,7 +117,7 @@ def export_elite_proxies():
                 f.write(row[0] + '\n')
         print(f'Successfully exported {len(results)} Elite proxies to elite.txt')
 def export_anon_proxies():
-    with sqlite3.connect('proxy.db') as conn:
+    with sqlite3.connect(dbname) as conn:
         c = conn.cursor()
         c.execute("SELECT * FROM proxies WHERE level='2'")
         results = c.fetchall()
@@ -84,7 +126,7 @@ def export_anon_proxies():
                 f.write(row[0] + '\n')
         print(f'Successfully exported {len(results)} Anonymous proxies to anon.txt')    
 def export_trans_proxies():
-    with sqlite3.connect('proxy.db') as conn:
+    with sqlite3.connect(dbname) as conn:
         c = conn.cursor()
         c.execute("SELECT * FROM proxies WHERE level='3'")
         results = c.fetchall()
@@ -93,7 +135,7 @@ def export_trans_proxies():
                 f.write(row[0] + '\n')
         print(f'Successfully exported {len(results)} Transparent proxies to trans.txt')
 def export_all_proxies():
-    with sqlite3.connect('proxy.db') as conn:
+    with sqlite3.connect(dbname) as conn:
         c = conn.cursor()
         c.execute("SELECT * FROM proxies")
         results = c.fetchall()
@@ -102,7 +144,7 @@ def export_all_proxies():
                 f.write(row[0] + '\n')
         print(f'Successfully exported {len(results)} proxies to px.txt')         
 def dbstats():
-    conn = sqlite3.connect('proxy.db')
+    conn = sqlite3.connect(dbname)
     c = conn.cursor()
     total_proxies = c.execute('SELECT COUNT(*) FROM proxies').fetchone()[0]
     total_elite = c.execute('SELECT COUNT(*) FROM proxies WHERE level = 1').fetchone()[0]
@@ -113,32 +155,6 @@ def dbstats():
     print(f"Total Elite: {total_elite}")
     print(f"Total Anonymous: {total_anon}")
     print(f"Total Transparent: {total_transparent}")
-signal.signal(signal.SIGINT, handle_interrupt)
-
-parser = argparse.ArgumentParser(description=build)
-parser.add_argument("-f", "--file", default="px.txt", help="path to proxy list (default: px.txt)")
-parser.add_argument("-p", "--ping", action="store_true", help="toggle ping output")
-parser.add_argument("-t", "--threads", type=int, default=2, help="amount of threads to use (default: 2)")
-parser.add_argument("-to", "--timeout", type=int, default=8, help="amount of seconds before timeout (default: 8)")
-parser.add_argument("-c", "--code", action="store_true", help="toggle http status code output")
-parser.add_argument("-u", "--url", action="store_true", help="toggle test url output")
-parser.add_argument("-v", "--verbose", action="store_true", help="verbose, include non-200")
-parser.add_argument("-s", "--skip", action="store_true", help="exclude transparent proxies from output")
-parser.add_argument("-r", "--recheck", action="store_true", help="allow rechecking of known proxies")
-parser.add_argument("-4", "--socks4", action="store_true", help="Use SOCKS4")
-parser.add_argument("-4a", "--socks4a", action="store_true", help="Use SOCKS4A")
-parser.add_argument("-5", "--socks5", action="store_true", help="Use SOCKS5 (default)")
-parser.add_argument("-az", "--azenv", action="store_true", help="Verify azenv.txt list")
-parser.add_argument("-ip", "--ipurl", action="store_true", help="Verify ipurl.txt list")
-parser.add_argument("-db", "--db", action="store_true", help="update proxy.db with results of previous scan")
-parser.add_argument("-st", "--stats", action="store_true", help="display proxy.db statistics")
-parser.add_argument("-xe", "--elite", action="store_true", help="expore all elite.txt")
-parser.add_argument("-xa", "--anon", action="store_true", help="expore all anon.txt")
-parser.add_argument("-xt", "--trans", action="store_true", help="expore all trans.txt")
-parser.add_argument("-xx", "--all", action="store_true", help="expore all px.txt")
-
-args = parser.parse_args()
-proxies_file = args.file
 with open(proxies_file) as f:
     proxies = [line.strip() for line in f.readlines()]
 with open("azenv.txt") as f:
@@ -194,15 +210,18 @@ if args.all:
 if args.stats:
     dbstats()
     quit()
+if args.pxgen:
+    get_prox()
+    quit()    
 updatedb()
 with open("prox.txt", "w") as outfile:
     wan_ip=get_public_ip()
     outfile.write(f"{build} VTS-Tech.org github.com/Veritas83\nStarting proxy check for {len(proxies)} proxies...\n")
     print(f"Starting proxy check for {len(proxies)} proxies...\n")
     # Open a connection to the SQLite database
-    conn = sqlite3.connect('proxy.db')
+    conn = sqlite3.connect(dbname)
     c = conn.cursor()
-    print("Accessing proxy.db ...\n")
+    print(f"Accessing {dbname} ...\n")
     async def check_proxy(session, proxy, semaphore):
         #time.sleep(0.1)
         proxy_host, proxy_port = proxy.split(":")
