@@ -15,19 +15,9 @@ import time
 import argparse
 import requests
 import sqlite3
-build = "VTSTech-PROXY v0.0.4-r01"
+build = "VTSTech-PROXY v0.0.4-r03"
 sys.tracebacklimit = 0
-ping_urls = [
-    "https://www.site24x7.com/ping-test.html",
-    "https://www.meter.net/tools/world-ping-test/",
-    "https://tools.pingdom.com/",
-    "http://ping-test.net/speed_test",
-    "https://www.highspeedinternet.com/tools/speed-test",
-    "https://www.uptrends.com/tools/ping-test",
-    "https://www.speedcheck.org/",
-    "https://www.pingwebsite.com/ping",
-    "https://www.atatus.com/tools/ping"
-]
+
 def updatedb():
     # Open a connection to the SQLite database
     conn = sqlite3.connect('proxy.db')
@@ -75,9 +65,58 @@ with open("ipurl.txt") as f:
 def get_public_ip():
     response = requests.get(random.choice(ip_urls)).text
     return response
+def export_elite_proxies():
+    with sqlite3.connect('proxy.db') as conn:
+        c = conn.cursor()
+        c.execute("SELECT * FROM proxies WHERE level='1'")
+        results = c.fetchall()
+        with open('elite.txt', 'w') as f:
+            for row in results:
+                f.write(row[0] + '\n')
+        print(f'Successfully exported {len(results)} Elite proxies to elite.txt')
+def export_anon_proxies():
+    with sqlite3.connect('proxy.db') as conn:
+        c = conn.cursor()
+        c.execute("SELECT * FROM proxies WHERE level='2'")
+        results = c.fetchall()
+        with open('anon.txt', 'w') as f:
+            for row in results:
+                f.write(row[0] + '\n')
+        print(f'Successfully exported {len(results)} Anonymous proxies to anon.txt')    
+def export_trans_proxies():
+    with sqlite3.connect('proxy.db') as conn:
+        c = conn.cursor()
+        c.execute("SELECT * FROM proxies WHERE level='3'")
+        results = c.fetchall()
+        with open('trans.txt', 'w') as f:
+            for row in results:
+                f.write(row[0] + '\n')
+        print(f'Successfully exported {len(results)} Transparent proxies to trans.txt')
+def export_all_proxies():
+    with sqlite3.connect('proxy.db') as conn:
+        c = conn.cursor()
+        c.execute("SELECT * FROM proxies")
+        results = c.fetchall()
+        with open('px.txt', 'w') as f:
+            for row in results:
+                f.write(row[0] + '\n')
+        print(f'Successfully exported {len(results)} proxies to px.txt')         
+def dbstats():
+    conn = sqlite3.connect('proxy.db')
+    c = conn.cursor()
+    total_proxies = c.execute('SELECT COUNT(*) FROM proxies').fetchone()[0]
+    total_elite = c.execute('SELECT COUNT(*) FROM proxies WHERE level = 1').fetchone()[0]
+    total_anon = c.execute('SELECT COUNT(*) FROM proxies WHERE level = 2').fetchone()[0]
+    total_transparent = c.execute('SELECT COUNT(*) FROM proxies WHERE level = 3').fetchone()[0]
+    conn.close()
+    print(f"Total Proxies: {total_proxies}")
+    print(f"Total Elite: {total_elite}")
+    print(f"Total Anonymous: {total_anon}")
+    print(f"Total Transparent: {total_transparent}")
 signal.signal(signal.SIGINT, handle_interrupt)
+
 parser = argparse.ArgumentParser(description=build)
-parser.add_argument("-f", "--file", default="px.txt", help="path to proxy list")
+parser.add_argument("-f", "--file", default="px.txt", help="path to proxy list (default: px.txt)")
 parser.add_argument("-p", "--ping", action="store_true", help="toggle ping output")
 parser.add_argument("-t", "--threads", type=int, default=2, help="amount of threads to use (default: 2)")
 parser.add_argument("-to", "--timeout", type=int, default=8, help="amount of seconds before timeout (default: 8)")
@@ -85,18 +124,27 @@ parser.add_argument("-c", "--code", action="store_true", help="toggle http statu
 parser.add_argument("-u", "--url", action="store_true", help="toggle test url output")
 parser.add_argument("-v", "--verbose", action="store_true", help="verbose, include non-200")
 parser.add_argument("-s", "--skip", action="store_true", help="exclude transparent proxies from output")
+parser.add_argument("-r", "--recheck", action="store_true", help="allow rechecking of known proxies")
 parser.add_argument("-4", "--socks4", action="store_true", help="Use SOCKS4")
 parser.add_argument("-4a", "--socks4a", action="store_true", help="Use SOCKS4A")
 parser.add_argument("-5", "--socks5", action="store_true", help="Use SOCKS5 (default)")
 parser.add_argument("-az", "--azenv", action="store_true", help="Verify azenv.txt list")
 parser.add_argument("-ip", "--ipurl", action="store_true", help="Verify ipurl.txt list")
-parser.add_argument("-db", "--db", action="store_true", help="update proxy.db")
+parser.add_argument("-db", "--db", action="store_true", help="update proxy.db with results of previous scan")
+parser.add_argument("-st", "--stats", action="store_true", help="display proxy.db statistics")
+parser.add_argument("-xe", "--elite", action="store_true", help="expore all elite.txt")
+parser.add_argument("-xa", "--anon", action="store_true", help="expore all anon.txt")
+parser.add_argument("-xt", "--trans", action="store_true", help="expore all trans.txt")
+parser.add_argument("-xx", "--all", action="store_true", help="expore all px.txt")
+
 args = parser.parse_args()
 proxies_file = args.file
 with open(proxies_file) as f:
     proxies = [line.strip() for line in f.readlines()]
 with open("azenv.txt") as f:
     test_urls = [line.strip() for line in f.readlines()]
+with open("pingurl.txt") as f:
+    ping_urls = [line.strip() for line in f.readlines()]    
 def verify_azenv():
     verified_urls=""
     for x in test_urls:
@@ -119,8 +167,7 @@ def verify_ipurl():
             print(f"ERROR: {x}")
     print("\nipurl.txt verification complete!\n")    
     return verified_ipurls    
-print(f"{build} VTS-Tech.org github.com/Veritas83\nStarting proxy check for {len(proxies)} proxies...\n")
-wan_ip=get_public_ip()
+print(f"{build} VTS-Tech.org github.com/Veritas83\n")
 if args.azenv:
     print("Verifying azenv.txt ...\n")
     print(verify_azenv())
@@ -132,9 +179,26 @@ if args.ipurl:
 if args.db:
     updatedb()
     quit()
+if args.elite:
+    export_elite_proxies()
+    quit()    
+if args.anon:
+    export_anon_proxies()
+    quit()    
+if args.trans:
+    export_trans_proxies()
+    quit()    
+if args.all:
+    export_all_proxies()
+    quit()
+if args.stats:
+    dbstats()
+    quit()
 updatedb()
 with open("prox.txt", "w") as outfile:
+    wan_ip=get_public_ip()
     outfile.write(f"{build} VTS-Tech.org github.com/Veritas83\nStarting proxy check for {len(proxies)} proxies...\n")
+    print(f"Starting proxy check for {len(proxies)} proxies...\n")
     # Open a connection to the SQLite database
     conn = sqlite3.connect('proxy.db')
     c = conn.cursor()
@@ -152,7 +216,7 @@ with open("prox.txt", "w") as outfile:
         test_url = random.choice(test_urls)
         # Check if the proxy already exists in the database
         result = c.execute('SELECT * FROM proxies WHERE ip_port = ?', (proxy,)).fetchone()
-        if result:
+        if result and not args.recheck:
             print(f"{proxy} already exists in the database!")
         else:
             try:
@@ -191,7 +255,7 @@ with open("prox.txt", "w") as outfile:
 	                                        output += f" PING: {round(latency * 1000, 2)}ms"
 	                                except:
 	                                    pass
-	                            if is_proxy_ip_present == True:
+	                            if is_proxy_ip_present == True and len(output) >9:
 	                                print(output)
 	                        else:
 	                            is_proxy_ip_present = False
