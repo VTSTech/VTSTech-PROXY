@@ -226,7 +226,6 @@ if args.stats:
 if args.pxgen:
     get_prox()
     quit()    
-updatedb()
 with open("prox.txt", "w") as outfile:
     wan_ip=get_public_ip()
     outfile.write(f"{build} VTS-Tech.org github.com/Veritas83\nStarting proxy check for {len(proxies)} proxies...\n")
