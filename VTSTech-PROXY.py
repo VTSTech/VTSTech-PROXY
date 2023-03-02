@@ -51,6 +51,7 @@ parser.add_argument("-5", "--socks5", action="store_true", help="Use SOCKS5 (def
 parser.add_argument("-az", "--azenv", action="store_true", help="Verify azenv.txt list")
 parser.add_argument("-ip", "--ipurl", action="store_true", help="Verify ipurl.txt list")
 parser.add_argument("-db", "--db", action="store_true", help="update proxy.db with results of previous scan")
+parser.add_argument("-dp", "--dupes", action="store_true", help="remove duplicates from proxy.db based on IP alone")
 parser.add_argument("-st", "--stats", action="store_true", help="display proxy.db statistics")
 parser.add_argument("-xe", "--elite", action="store_true", help="export all elite.txt")
 parser.add_argument("-xa", "--anon", action="store_true", help="export all anon.txt")
@@ -168,6 +169,29 @@ def dbstats():
     print(f"Total Elite: {total_elite}")
     print(f"Total Anonymous: {total_anon}")
     print(f"Total Transparent: {total_transparent}")
+def remove_duplicates_by_ip():
+    # Open a connection to the SQLite database
+    conn = sqlite3.connect(dbname)
+    print(f"Accessing {dbname} ...\n")
+    c = conn.cursor()
+
+    # Remove duplicates based on IP address
+    ips = set()
+    duplicates = []
+    for row in c.execute('SELECT rowid, ip_port FROM proxies'):
+        ip = row[1].split(':')[0]
+        if ip in ips:
+            duplicates.append(row[0])
+        else:
+            ips.add(ip)
+
+    for rowid in duplicates:
+        c.execute('DELETE FROM proxies WHERE rowid = ?', (rowid,))
+        print(f"deleting {rowid}")
+
+    # Commit the changes to the database and close the connection
+    conn.commit()
+    conn.close()
 with open(proxies_file) as f:
     proxies = [line.strip() for line in f.readlines()]
 with open("azenv.txt") as f:
@@ -226,6 +250,9 @@ if args.stats:
 if args.pxgen:
     get_prox()
     quit()    
+if args.dupes:
+    remove_duplicates_by_ip()
+    quit() 
 with open("prox.txt", "w") as outfile:
     wan_ip=get_public_ip()
     outfile.write(f"{build} VTS-Tech.org github.com/Veritas83\nStarting proxy check for {len(proxies)} proxies...\n")
