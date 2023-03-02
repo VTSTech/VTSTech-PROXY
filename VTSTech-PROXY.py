@@ -16,8 +16,20 @@ import argparse
 import requests
 import sqlite3
 import pxgen
+import subprocess
 
-build = "VTSTech-PROXY v0.0.4-r04"
+build = "VTSTech-PROXY v0.0.4-r05"
+
+def get_ping_latency(proxy_host):
+    try:
+        result = subprocess.run(['ping', '-c', '1', '-W', '1', f"{proxy_host}"], capture_output=True, text=True, timeout=5)
+        if "1 received" in result.stdout:
+            latency = float(result.stdout.split("time=")[1].split(" ms")[0])
+            return round(latency, 2)
+    except Exception:
+        pass
+    return None
+
 def handle_interrupt(signal, frame):
     print("\nStopping current proxy check...")
     sys.exit(0)
@@ -160,8 +172,6 @@ with open(proxies_file) as f:
     proxies = [line.strip() for line in f.readlines()]
 with open("azenv.txt") as f:
     test_urls = [line.strip() for line in f.readlines()]
-with open("pingurl.txt") as f:
-    ping_urls = [line.strip() for line in f.readlines()]    
 def verify_azenv():
     wan_ip=get_public_ip()
     verified_urls=""
@@ -270,14 +280,10 @@ with open("prox.txt", "w") as outfile:
 	                                except:
 	                                    pass
 	                            if args.ping:
-	                                try:
-	                                    start_time = time.monotonic()
-	                                    async with session.get(random.choice(ping_urls), proxy=f'{socks_uri}{proxy_host}:{proxy_port}', timeout=args.timeout) as response:
-	                                        latency = time.monotonic() - start_time
-	                                        output += f" PING: {round(latency * 1000, 2)}ms"
-	                                except:
-	                                    pass
-	                            if is_proxy_ip_present == True and len(output) >9:
+	                                latency = get_ping_latency(proxy_host)
+	                                if latency:
+	                                    output += f" PING: {latency}ms"
+	                            if is_proxy_ip_present == True and len(output)>9 and output[0] != "0":
 	                                print(output)
 	                        else:
 	                            is_proxy_ip_present = False
