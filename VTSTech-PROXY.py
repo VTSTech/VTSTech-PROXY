@@ -17,15 +17,23 @@ import requests
 import sqlite3
 import pxgen
 import subprocess
+import platform
 
-build = "VTSTech-PROXY v0.0.4-r05"
-
+build = "VTSTech-PROXY v0.0.4-r06"
+system = platform.system()
+#print(system)
 def get_ping_latency(proxy_host):
     try:
-        result = subprocess.run(['ping', '-c', '1', '-W', '1', f"{proxy_host}"], capture_output=True, text=True, timeout=5)
-        if "1 received" in result.stdout:
-            latency = float(result.stdout.split("time=")[1].split(" ms")[0])
-            return round(latency, 2)
+        if system == "Windows":
+	        result = subprocess.run(['ping.exe', '-n', '1', '-l', '1', f"{proxy_host}"], capture_output=True, text=True, timeout=5)
+	        if "Reply from" in result.stdout:
+	            latency = float(result.stdout.split("time=")[1].split("ms")[0])
+	            return round(latency, 2)
+        else:
+	        result = subprocess.run(['ping', '-c', '1', '-W', '1', f"{proxy_host}"], capture_output=True, text=True, timeout=5)
+	        if "1 received" in result.stdout:
+	            latency = float(result.stdout.split("time=")[1].split(" ms")[0])
+	            return round(latency, 2)
     except Exception:
         pass
     return None
