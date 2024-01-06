@@ -1,7 +1,7 @@
 # Program: pxgen.py
 # Description: Python module creates a list of SOCKS4/5 proxies from various sources
 # Author: Written by Veritas//VTSTech (veritas@vts-tech.org)
-# GitHub: https://github.com/Veritas83
+# GitHub: https://github.com/VTSTech
 # Homepage: www.VTS-Tech.org
 
 import requests
