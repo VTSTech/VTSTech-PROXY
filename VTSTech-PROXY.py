@@ -1,7 +1,7 @@
 # Program: VTSTech-PROXY.py
 # Description: Python script that asynchronously checks a list of SOCKS5 proxies for anonymity and writes the results to a text file.
 # Author: Written by Veritas//VTSTech (veritas@vts-tech.org)
-# GitHub: https://github.com/Veritas83
+# GitHub: https://github.com/VTSTech
 # Homepage: www.VTS-Tech.org
 # Dependencies: aiohttp
 # pip install aiohttp tqdm
@@ -18,10 +18,10 @@ import sqlite3
 import pxgen
 import subprocess
 import platform
-
-build = "VTSTech-PROXY v0.0.4-r06"
 system = platform.system()
-#print(system)
+sys.tracebacklimit = 0
+build = "VTSTech-PROXY v0.0.4-r07"
+buildtime = "2023-03-17 2:27:53 PM"
 def get_ping_latency(proxy_host):
     try:
         if system == "Windows":
@@ -41,7 +41,6 @@ def get_ping_latency(proxy_host):
 def handle_interrupt(signal, frame):
     print("\nStopping current proxy check...")
     sys.exit(0)
-sys.tracebacklimit = 0
 signal.signal(signal.SIGINT, handle_interrupt)
 parser = argparse.ArgumentParser(description=build)
 parser.add_argument("-f", "--file", default="px.txt", help="path to proxy list (default: px.txt)")
@@ -228,7 +227,7 @@ def verify_ipurl():
             print(f"ERROR: {x}")
     print("\nipurl.txt verification complete!\n")    
     return verified_ipurls    
-print(f"{build} VTS-Tech.org github.com/Veritas83\n")
+print(f"{build} VTS-Tech.org github.com/VTSTech\n")
 if args.azenv:
     print("Verifying azenv.txt ...\n")
     print(verify_azenv())
@@ -263,7 +262,7 @@ if args.dupes:
     quit() 
 with open("prox.txt", "w") as outfile:
     wan_ip=get_public_ip()
-    outfile.write(f"{build} VTS-Tech.org github.com/Veritas83\nStarting proxy check for {len(proxies)} proxies...\n")
+    outfile.write(f"{build} VTS-Tech.org github.com/VTSTech\nStarting proxy check for {len(proxies)} proxies. Using {dbname}...\n")
     print(f"Starting proxy check for {len(proxies)} proxies...\n")
     # Open a connection to the SQLite database
     conn = sqlite3.connect(dbname)
@@ -368,4 +367,6 @@ with open("prox.txt", "w") as outfile:
                         if task is not None:
                             tasks.append(task)
                     results = await asyncio.gather(*tasks)
+                    print("Check complete...")
+                    updatedb()
     asyncio.run(main())
