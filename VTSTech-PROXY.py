@@ -20,8 +20,8 @@ import subprocess
 import platform
 system = platform.system()
 sys.tracebacklimit = 0
-build = "VTSTech-PROXY v0.0.4-r07"
-buildtime = "2023-03-17 2:27:53 PM"
+build = "VTSTech-PROXY v0.0.5-r08"
+buildtime = "2024-04-19 10:19:07 AM"
 def get_ping_latency(proxy_host):
     try:
         if system == "Windows":
@@ -57,7 +57,6 @@ parser.add_argument("-4a", "--socks4a", action="store_true", help="Use SOCKS4A")
 parser.add_argument("-5", "--socks5", action="store_true", help="Use SOCKS5 (default)")
 parser.add_argument("-az", "--azenv", action="store_true", help="Verify azenv.txt list")
 parser.add_argument("-ip", "--ipurl", action="store_true", help="Verify ipurl.txt list")
-parser.add_argument("-db", "--db", action="store_true", help="update proxy.db with results of previous scan")
 parser.add_argument("-dp", "--dupes", action="store_true", help="remove duplicates from proxy.db based on IP alone")
 parser.add_argument("-st", "--stats", action="store_true", help="display proxy.db statistics")
 parser.add_argument("-xe", "--elite", action="store_true", help="export all elite.txt")
@@ -110,6 +109,10 @@ def updatedb():
     # Commit the changes to the database and close the connection
     conn.commit()
     conn.close()
+    f.close
+    with open('prox.txt', 'w') as outfile:
+    	    outfile.write(f"")
+    outfile.close
 def get_prox():
     output_file_path = "socks5.txt"
     pxgen.download_and_merge_text_files(pxgen.socks5, output_file_path)
@@ -252,14 +255,17 @@ if args.all:
     export_all_proxies()
     quit()
 if args.stats:
+    updatedb()
     dbstats()
     quit()
 if args.pxgen:
     get_prox()
     quit()    
 if args.dupes:
+    updatedb()
     remove_duplicates_by_ip()
     quit() 
+updatedb()
 with open("prox.txt", "w") as outfile:
     wan_ip=get_public_ip()
     outfile.write(f"{build} VTS-Tech.org github.com/VTSTech\nStarting proxy check for {len(proxies)} proxies. Using {dbname}...\n")
