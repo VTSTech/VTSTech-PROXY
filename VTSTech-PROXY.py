@@ -18,6 +18,8 @@ import sqlite3
 import pxgen
 import subprocess
 import platform
+import os.path
+
 system = platform.system()
 sys.tracebacklimit = 0
 build = "VTSTech-PROXY v0.0.5-r08"
@@ -70,6 +72,10 @@ if args.socks4 or args.socks4a:
     dbname="socks4.db"
 else:
     dbname="proxy.db"
+if os.path.exists('px.txt') == False:
+    with open('px.txt', 'w') as outfile:
+       outfile.write(f"")
+    outfile.close    
 def updatedb():
     # Open a connection to the SQLite database
     conn = sqlite3.connect(dbname)
@@ -77,7 +83,10 @@ def updatedb():
     print(f"Updating {dbname} ...\n")
     # Create the table to hold the data
     c.execute('CREATE TABLE IF NOT EXISTS proxies (ip_port TEXT PRIMARY KEY, anonymity TEXT, level TEXT, url TEXT, ping REAL, last_tested DATE)')
-
+    if os.path.exists('prox.txt') == False:
+        with open('prox.txt', 'w') as outfile:
+    	       outfile.write(f"")
+        outfile.close
     # Open the text file and read in the lines
     with open('prox.txt', 'r') as f:
         lines = f.readlines()[2:]
@@ -239,9 +248,9 @@ if args.ipurl:
     print("Verifying ipurl.txt ...\n")
     print(verify_ipurl())
     quit()
-if args.db:
-    updatedb()
-    quit()
+#if args.db:
+#    updatedb()
+#    quit()
 if args.elite:
     export_elite_proxies()
     quit()    
