@@ -1,10 +1,8 @@
 # VTSTech-PROXY
  Python script that asynchronously checks a list of SOCKS4/4A/5 proxies for anonymity and writes the results to a text file and sqlite db.
-
- <b>Run VTSTech-PROXY.py -db to initalize the database.</b>
 # Usage
 <pre>
-usage: VTSTech-PROXY.py [-h] [-f FILE] [-p] [-t THREADS] [-to TIMEOUT] [-c] [-u] [-v] [-s] [-r] [-4] [-4a] [-5] [-az] [-ip] [-db] [-st] [-xe] [-xa] [-xt]
+usage: VTSTech-PROXY.py [-h] [-f FILE] [-p] [-t THREADS] [-to TIMEOUT] [-c] [-u] [-v] [-s] [-r] [-4] [-4a] [-5] [-az] [-ip] [-st] [-xe] [-xa] [-xt]
                         [-xx] [-gen]
 
 VTSTech-PROXY v0.0.4-r04
@@ -27,7 +25,6 @@ options:
   -5, --socks5          Use SOCKS5 (default)
   -az, --azenv          Verify azenv.txt list
   -ip, --ipurl          Verify ipurl.txt list
-  -db, --db             update proxy.db with results of previous scan
   -st, --stats          display proxy.db statistics
   -xe, --elite          export all elite.txt
   -xa, --anon           export all anon.txt
