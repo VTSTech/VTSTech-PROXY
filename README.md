@@ -1,7 +1,7 @@
-<img src="https://cdn.discordapp.com/attachments/796593977985466408/1080601451941859489/image.png">
-<img src="https://cdn.discordapp.com/attachments/796593977985466408/1080312791702982746/image.png">
 # VTSTech-PROXY
- Python script that asynchronously checks a list of SOCKS4/4A/5 proxies for anonymity and writes the results to a text file and sqlite db. 
+ Python script that asynchronously checks a list of SOCKS4/4A/5 proxies for anonymity and writes the results to a text file and sqlite db.
+
+ <b>Run VTSTech-PROXY.py -db to initalize the database.</b>
 # Usage
 <pre>
 usage: VTSTech-PROXY.py [-h] [-f FILE] [-p] [-t THREADS] [-to TIMEOUT] [-c] [-u] [-v] [-s] [-r] [-4] [-4a] [-5] [-az] [-ip] [-db] [-st] [-xe] [-xa] [-xt]
