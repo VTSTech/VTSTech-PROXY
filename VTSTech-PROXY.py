@@ -23,7 +23,7 @@ import os.path
 system = platform.system()
 sys.tracebacklimit = 0
 build = "VTSTech-PROXY v0.0.5-r08"
-buildtime = "2024-04-19 10:19:07 AM"
+buildtime = "2024-04-19 11:07:50 AM"
 def get_ping_latency(proxy_host):
     try:
         if system == "Windows":
@@ -42,6 +42,7 @@ def get_ping_latency(proxy_host):
 
 def handle_interrupt(signal, frame):
     print("\nStopping current proxy check...")
+    updatedb()
     sys.exit(0)
 signal.signal(signal.SIGINT, handle_interrupt)
 parser = argparse.ArgumentParser(description=build)
