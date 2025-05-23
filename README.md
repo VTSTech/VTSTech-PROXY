@@ -11,10 +11,8 @@ $ python VTSTech-PROXY.py -h
    ██║      ██║   ███████║   ██║   ███████╗╚██████╗██║  ██║
    ╚═╝      ╚═╝   ╚══════╝   ╚═╝   ╚══════╝ ╚═════╝╚═╝  ╚═╝
 
-VTSTech-PROXY v0.0.5-r09 www.vts-tech.org github.com/VTSTech
+VTSTech-PROXY v0.0.6-r09 www.vts-tech.org github.com/VTSTech
 usage: VTSTech-PROXY.py [-h] [-f FILE] [-ua UA] [-g] [-st] [-t THREADS] [-to TIMEOUT] [-r] [-c] [-4] [-4a] [-xx] [-xe] [-xa] [-v]
-
-VTSTech-PROXY v0.0.5-r09 www.vts-tech.org github.com/VTSTech
 
 options:
   -h, --help            show this help message and exit
