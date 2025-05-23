@@ -294,7 +294,7 @@ def main():
         return
     checker = ProxyChecker(args)
     asyncio.run(checker.run())
-    print(f"\nFound {len(checker.results)} valid proxies out of {len(checker.proxies)}")
+    #print(f"\nFound {len(checker.results)} valid proxies out of {len(checker.proxies)}")
 
 if __name__ == "__main__":
     try:
