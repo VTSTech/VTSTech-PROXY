@@ -253,7 +253,7 @@ def export_proxies(db_name, level=None, filename=None):
 
 def main():
     print_banner()
-    parser = argparse.ArgumentParser(description=build)
+    parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--file", default="socks5.txt", help="Proxy list file")
     parser.add_argument("-ua", "--ua", help="Set custom User-Agent string")
     parser.add_argument("-g", "--gen", action="store_true", help="Generate fresh proxy list from online sources")
