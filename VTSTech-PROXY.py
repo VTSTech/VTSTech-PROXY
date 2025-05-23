@@ -28,7 +28,7 @@ BANNER = r"""
 """
 
 system = platform.system()
-build = "VTSTech-PROXY v0.0.5-r09 www.vts-tech.org github.com/VTSTech"
+build = "VTSTech-PROXY v0.0.6-r09 www.vts-tech.org github.com/VTSTech"
 DEFAULT_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
 def print_banner():
