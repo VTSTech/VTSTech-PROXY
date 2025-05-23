@@ -121,7 +121,6 @@ class ProxyChecker:
                                     if self.wan_ip in content:
                                         anonymity = 'Transparent'
                                         level = 3                                   
-                                        return  # Proxy is transparent
                                     elif any(h in headers for h in ['X-Forwarded-For', 'Via', 'Forwarded']):
                                         anonymity = 'Anonymous'
                                         level = 2
