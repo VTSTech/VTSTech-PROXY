@@ -15,6 +15,7 @@ import subprocess
 from tqdm import tqdm
 from datetime import datetime
 import random
+import re
 from aiohttp_socks import ProxyConnector, ProxyType
 from pxgen import download_and_merge_text_files, socks4, socks5
 
@@ -28,7 +29,7 @@ BANNER = r"""
 """
 
 system = platform.system()
-build = "VTSTech-PROXY v0.0.6-r09 www.vts-tech.org github.com/VTSTech"
+build = "VTSTech-PROXY v0.0.7-r10 www.vts-tech.org github.com/VTSTech"
 DEFAULT_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
 def print_banner():
@@ -47,13 +48,18 @@ class ProxyChecker:
         self.valid_counter = 0
         self.test_urls = [
             "http://httpbin.org/ip",
-            "http://api.ipify.org?format=json",
+            "http://api.ipify.org?format=txt",
             "https://jsonip.com/",
             "https://l2.io/ip.json",
             "https://api.ip.sb/ip",
-            "http://ipinfo.io/json"
+            "https://ifconfig.co/ip",
+            "https://myip1.com/raw",
+            "http://icanhazip.com",
+            "https://ipecho.net/plain",
+            "http://ipinfo.io/ip"
         ]
         self.wan_ip = None
+        self.clean_mode = args.clean
         self.init_database()
         self.load_proxies()
 
@@ -72,14 +78,15 @@ class ProxyChecker:
                          last_tested DATE)''')
 
     def load_proxies(self):
-        with open(self.args.file) as f:
-            self.proxies = [line.strip() for line in f if ':' in line.strip()]
-        
-        if not self.args.recheck:
-            with sqlite3.connect(self.db_name) as conn:
-                cursor = conn.execute("SELECT ip_port FROM proxies")
-                existing = {row[0] for row in cursor.fetchall()}
-            self.proxies = [p for p in self.proxies if p not in existing]
+        if self.args.file:
+            with open(self.args.file) as f:
+                self.proxies = [line.strip() for line in f if ':' in line.strip()]
+            
+            if not self.args.recheck:
+                with sqlite3.connect(self.db_name) as conn:
+                    cursor = conn.execute("SELECT ip_port FROM proxies")
+                    existing = {row[0] for row in cursor.fetchall()}
+                self.proxies = [p for p in self.proxies if p not in existing]
 
     async def get_public_ip(self):
         try:
@@ -139,7 +146,7 @@ class ProxyChecker:
                                     }
                                     self.results.append(result)
                                     self.valid_counter += 1
-                                    if self.valid_counter % 3 == 0:
+                                    if not self.clean_mode and self.valid_counter % 3 == 0:
                                         await self.update_database()
                                         self.results = []  # Clear the in-memory results that were just written                                    
                                     ping_display = f" | Ping: {latency}ms" if latency is not None else ""
@@ -155,12 +162,13 @@ class ProxyChecker:
                 pbar.update(1)
 
     async def update_database(self):
-        with sqlite3.connect(self.db_name) as conn:
-            conn.executemany('''INSERT OR REPLACE INTO proxies 
-                              VALUES (?,?,?,?,?,?)''', 
-                              [(r['ip_port'], r['anonymity'], r['level'], 
-                               r['url'], r['ping'], r['last_tested']) for r in self.results])
-            conn.commit()
+        if self.results:
+            with sqlite3.connect(self.db_name) as conn:
+                conn.executemany('''INSERT OR REPLACE INTO proxies 
+                                  VALUES (?,?,?,?,?,?)''', 
+                                  [(r['ip_port'], r['anonymity'], r['level'], 
+                                   r['url'], r['ping'], r['last_tested']) for r in self.results])
+                conn.commit()
 
     async def clean_offline_proxies(self):
         with sqlite3.connect(self.db_name) as conn:
@@ -179,6 +187,10 @@ class ProxyChecker:
         with tqdm(total=len(self.proxies), desc="Rechecking proxies") as pbar:
             tasks = [self.check_proxy(p, semaphore, pbar) for p in self.proxies]
             await asyncio.gather(*tasks)
+        
+        # Final update for clean operation
+        if self.clean_mode and self.results:
+            await self.update_database()
 
         valid_set = {r['ip_port'] for r in self.results}
         to_delete = list(set(self.proxies) - valid_set)
@@ -250,6 +262,42 @@ def export_proxies(db_name, level=None, filename=None):
     except sqlite3.Error as e:
         print(f"Error exporting proxies: {e}")
 
+def import_log(log_file, db_name):
+    """
+    Import proxies from a log file into the database
+    Format: VALID <ip:port> | Level <level> (<anonymity>) [| Ping: <ms>ms]
+    Example: VALID 1.2.3.4:8080 | Level 1 (Elite) | Ping: 100.0ms
+    """
+    pattern = re.compile(
+        r"VALID\s+([\d\.]+:\d+)\s+\|\s+Level\s+(\d+)\s+\((\w+)\)(?:\s+\|\s+Ping:\s+([\d\.]+)ms)?"
+    )
+    
+    imported_count = 0
+    with sqlite3.connect(db_name) as conn:
+        cursor = conn.cursor()
+        
+        with open(log_file, 'r') as f:
+            for line in f:
+                match = pattern.search(line.strip())
+                if match:
+                    ip_port = match.group(1)
+                    level = int(match.group(2))
+                    anonymity = match.group(3)
+                    ping = float(match.group(4)) if match.group(4) else None
+                    
+                    # Insert or replace in database
+                    cursor.execute(
+                        '''INSERT OR REPLACE INTO proxies 
+                        (ip_port, anonymity, level, url, ping, last_tested) 
+                        VALUES (?, ?, ?, ?, ?, ?)''',
+                        (ip_port, anonymity, level, "imported", ping, datetime.now().strftime('%Y-%m-%d'))
+                    )
+                    imported_count += 1
+        
+        conn.commit()
+    
+    print(f"Imported {imported_count} proxies from {log_file}")
+
 def main():
     print_banner()
     parser = argparse.ArgumentParser()
@@ -266,9 +314,15 @@ def main():
     parser.add_argument("-xx", "--export-all", action="store_true", help="Export all proxies to file")
     parser.add_argument("-xe", "--export-elite", action="store_true", help="Export elite proxies to file")
     parser.add_argument("-xa", "--export-anonymous", action="store_true", help="Export anonymous proxies to file")
+    parser.add_argument("-i", "--import-log", help="Import proxies from a log file")
     parser.add_argument("-v", "--verbose", action="store_true", help="Show errors")
     args = parser.parse_args()
 
+    if args.import_log:
+        db_name = "socks4.db" if (args.socks4 or args.socks4a) else "proxy.db"
+        import_log(args.import_log, db_name)
+        return
+        
     if args.stats:
         db_name = "socks4.db" if (args.socks4 or args.socks4a) else "proxy.db"
         show_minimal_stats(db_name)
